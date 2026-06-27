@@ -1,4 +1,4 @@
-# Laporan Proyek Machine Learning - Prediksi Dampak AI terhadap Performa Akademik
+# Laporan Proyek Machine Learning - Naufal satrio Putra
 
 ## Project Overview
 
@@ -32,7 +32,10 @@ Untuk menyelesaikan masalah dan mencapai *goals* yang diinginkan, pendekatan yan
 
 ## Data Understanding
 
-Data yang digunakan dalam proyek ini adalah *dataset* **ai_impact.csv** yang memuat informasi terkait mahasiswa, kebiasaan penggunaan AI, hingga pencapaian akhir akademik mereka. Dataset ini memiliki gabungan variabel numerik dan kategorikal.
+Data yang digunakan dalam proyek ini adalah *dataset* **Impact of Ai on Students** yang bersumber dari [Kaggle](https://www.kaggle.com/datasets/laveshjadon/ai-impact-on-students). Dataset ini memuat informasi terkait mahasiswa, kebiasaan penggunaan AI, hingga pencapaian akhir akademik mereka. 
+
+**Kondisi Data:**
+Dataset ini memiliki ukuran yang cukup besar, yaitu terdiri dari **50.000 baris** observasi dan **16 kolom** (variabel). Berdasarkan observasi awal, kondisi data sangat bersih karena **tidak terdapat nilai kosong (missing values/NaN)** pada seluruh atributnya, sehingga bisa langsung diolah tanpa tahapan imputasi data. Dataset ini memiliki gabungan variabel dengan tipe numerik dan kategorikal.
 
 Keseluruhan variabel (atribut) pada dataset ini adalah sebagai berikut:
 - **Student_ID**: Identifier unik untuk mengidentifikasi setiap mahasiswa (tidak memiliki nilai prediksi sehingga dihapus pada tahap pemrosesan).
@@ -86,29 +89,38 @@ Tahapan data preparation yang dilakukan dalam eksperimen adalah:
 
 ## Modeling
 
-Tahap pengembangan model difokuskan pada tiga algoritma regresi:
+Tahap pengembangan model difokuskan pada tiga algoritma regresi. Berikut adalah rincian, parameter yang digunakan, beserta kelebihan dan kekurangannya:
 
 1. **LARS (Least Angle Regression)**
    - Algoritma regresi ini memprioritaskan efisiensi tinggi pada fitur-fitur yang paling berpengaruh.
+   - **Parameter yang digunakan**: `n_nonzero_coefs=1`. Parameter ini sangat membatasi model karena hanya mengizinkan 1 koefisien fitur yang bernilai bukan nol (hanya menggunakan fitur paling dominan tunggal).
    - **Kelebihan**: Cepat dan memiliki proses reduksi fitur bawaan jika variabel independennya banyak.
-   - **Kekurangan**: Pada eksperimen ini dipaksa menggunakan batas `n_nonzero_coefs=1`, sehingga model mengalami *underfitting* yang parah (hanya melihat satu fitur paling dominan).
+   - **Kekurangan**: Akibat batas ketat `n_nonzero_coefs=1`, model mengalami *underfitting* yang parah dalam eksperimen ini.
 2. **Linear Regression**
    - Pendekatan parametrik standar yang menciptakan garis lurus (linear) untuk memodelkan hubungan variabel independen dan dependen.
-   - **Kelebihan**: Sangat mudah diinterpretasikan, minim kompleksitas.
-   - **Kekurangan**: Tidak dapat menguraikan hubungan non-linear yang kompleks di antara prediktor.
+   - **Parameter yang digunakan**: Parameter bawaan (*default*) tanpa kustomisasi hyperparameter lanjutan.
+   - **Kelebihan**: Sangat mudah diinterpretasikan, minim komputasi, dan efisien sebagai *baseline* model.
+   - **Kekurangan**: Tidak dapat menguraikan hubungan non-linear yang kompleks di antara prediktor secara alamiah.
 3. **Gradient Boosting Regressor (GBR)**
-   - Algoritma *ensemble* berbasis pohon keputusan (*decision tree*) yang secara iteratif memperbaiki prediksi model sebelumnya (mengurangi *loss*).
+   - Algoritma *ensemble* berbasis pohon keputusan (*decision tree*) yang secara iteratif memperbaiki prediksi model sebelumnya (mengurangi *loss* berurutan).
+   - **Parameter yang digunakan**: `random_state=184` (untuk reproduksibilitas hasil), sementara parameter lain seperti *learning rate* dan jumlah *estimators* menggunakan konfigurasi *default*. 
    - **Kelebihan**: Sangat tangguh (*robust*) terhadap relasi variabel yang non-linear dan mampu meminimalisasi sisa ketidakakuratan secara efektif.
-   - **Kekurangan**: Membutuhkan waktu komputasi yang lebih lambat dan berpotensi *overfitting* jika *hyperparameter* tidak disesuaikan dengan baik.
+   - **Kekurangan**: Membutuhkan waktu komputasi yang lebih lambat dan berpotensi *overfitting* dibandingkan regresi linear biasa.
 
 Pada proyek ini, **Gradient Boosting Regressor** diposisikan sebagai solusi yang terbaik (*Top-1*) karena dataset dampak AI diindikasi tidak sepenuhnya bergerak linear, sehingga membutuhkan kapabilitas pohon keputusan berantai milik GBR.
 
 ## Evaluation
 
-Model dievaluasi menggunakan tiga metrik utama dari model regresi. 
-- **MAE (Mean Absolute Error)**: Rata-rata selisih absolut antara nilai prediksi dan aslinya. Semakin kecil, semakin akurat.
-- **MSE (Mean Squared Error)**: Rata-rata dari kuadrat selisih antara nilai prediksi dan aslinya. Metrik ini memberikan penalti sangat besar untuk prediksi yang meleset jauh.
-- **R2 Score (Koefisien Determinasi)**: Seberapa baik variabel independen menjelaskan varians fitur target. Rentang ideal adalah mendekati nilai 1.
+Model dievaluasi menggunakan tiga metrik utama dari model regresi. Berikut adalah penjelasan beserta formula kerjanya:
+
+- **MAE (Mean Absolute Error)**: Menghitung rata-rata dari selisih absolut antara nilai prediksi model dengan nilai observasi sebenarnya. Metrik ini intuitif dan menunjukkan rata-rata jarak kesalahan. Semakin kecil, semakin akurat.
+  $$MAE = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|$$
+- **MSE (Mean Squared Error)**: Menghitung rata-rata dari kuadrat selisih antara nilai prediksi dan aslinya. Karena dikuadratkan, metrik ini memberikan penalti (*penalty*) yang sangat besar untuk prediksi yang meleset jauh (*outlier*).
+  $$MSE = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$$
+- **R2 Score (Koefisien Determinasi)**: Mengukur seberapa baik variabel independen mampu menjelaskan varians dari variabel target. Nilai maksimalnya adalah 1.0 (prediksi sempurna). Jika nilainya negatif, berarti model lebih buruk daripada sekadar menebak rata-rata.
+  $$R^2 = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y})^2}$$
+
+*(Keterangan: $n$ = jumlah observasi, $y_i$ = nilai aktual, $\hat{y}_i$ = nilai prediksi, $\bar{y}$ = rata-rata nilai aktual)*
 
 Hasil pengujian terhadap *Test Set*:
 
